@@ -1,24 +1,24 @@
 import React from 'react';
-import logo from './logo.svg';
 import './App.css';
+import {  Route, Switch } from 'react-router-dom';
+import Brands from './components/catalogs/Brands';
+import Catalogo2 from './components/catalogs/Catalogo2';
+import Main from './components/Main';
+import Landing from './components/Landing';
+
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+       <Main/>
+ 
+        <div>
+          <Switch>
+            <Route exact path={"/"} component={Landing} />
+            <Route path={"/Brands"} component={Brands} />
+            <Route path={"/cat2"} component={Catalogo2} />
+          </Switch>
+        </div>
     </div>
   );
 }
