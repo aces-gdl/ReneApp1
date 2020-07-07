@@ -15,24 +15,41 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import Modal from '@material-ui/core/Modal';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
+import IconButton from '@material-ui/core/IconButton';
 import '../Catalog.css';
-
+import { SnackMessages } from '../utils/SnackMessages';
 const querystring = require('query-string');
 
 
 const columns = [
-    { id: 'code', label: 'Código', minWidth: 100 },
+    {
+        id: 'code',
+        label: 'Código',
+        align: 'center',
+        minWidth: 50
+    },
     {
         id: 'description',
         label: 'Descripción',
-        minWidth: 170,
         align: 'center',
-        format: (value) => value.toLocaleString('en-US'),
+        minWidth: 150
+    },
+    {
+        id: 'credits',
+        label: 'Créditos',
+        align: 'center',
+        minWidth: 50
+    },
+    {
+        id: 'price',
+        label: 'Precio',
+        align: 'center',
+        minWidth: 50
     },
     {
         id: 'actions',
         label: 'Acciones',
-        minWidth: 170,
+        minWidth: 150,
         align: 'center',
         format: (value) => value.toLocaleString('en-US'),
     },
@@ -54,7 +71,7 @@ function getModalStyle() {
 const useStyles = makeStyles((theme) => ({
     paper: {
         position: 'absolute',
-        width: 400,
+        width: 500,
 
         backgroundColor: theme.palette.background.paper,
         border: '1px solid #000',
@@ -76,10 +93,17 @@ const useStyles = makeStyles((theme) => ({
     modalTitle: {
         color: 'white',
         backgroundColor: 'rgb(12,81,161)'
-    }
+    },
+    dropDown: {
+        width: '220px'
+    },
+    TextField: {
+        width: '220px'
+    },
 }));
 
-const Brands = (props) => {
+
+const Items = (props) => {
     const classes = useStyles();
     const [myData, setMyData] = React.useState([]);
     const [isEditOpen, setIsEditOpen] = React.useState(false);
@@ -87,29 +111,70 @@ const Brands = (props) => {
     const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
 
     const [modalStyle] = React.useState(getModalStyle);
-
+    const [searchString, setSearchString] = React.useState('');
 
     const [values, setValues] = React.useState({
-        searchString: '',
-        brandId: '',
+        itemId: '',
         code: '',
         description: '',
+        credits: '',
+        price: '',
     });
 
+    const [mySnack, setMySnack] = React.useState({
+        TextMessage: 'Hola Default',
+        isOpen: false,
+        MessageType: 'Info'
+    })
+
+    const handleChangeSearchString = (prop) => (event) => {
+        setSearchString(event.target.value);
+    };
     const handleChange = (prop) => (event) => {
         setValues({ ...values, [prop]: event.target.value });
     };
 
 
-    const UpdateBrand = ((event) => {
+    const handleSnackClose = (() => {
+        setMySnack({ isOpen: false });
+    })
 
+
+    const validateForm = (() => {
+        var errorMessage = '';
+
+        if (values.code === '' && errorMessage.length === 0) {
+            errorMessage += "Codigo es requerido"
+        }
+        if (values.description === '' && errorMessage.length === 0) {
+            errorMessage += "Descripción es requerida"
+        }
+        if (values.credits === '' && errorMessage.length === 0) {
+            errorMessage += "Creditos es requerido"
+        }
+        if (values.price === '' && errorMessage.length === 0) {
+            errorMessage += "Precio es requerido"
+        }
+        return errorMessage.length > 0
+    })
+
+
+    const SaveItem = (() => {
+        if (validateForm()) {
+            return
+        }
         const payload = {
-            'keyId': values.brandId,
-            'code': values.code,
-            'description': values.description,
+            keyId: values.itemId,
+            code: values.code,
+            description: values.description,
+            credits: values.credits,
+            price: values.price
         };
+
+        console.log('Payload: ', payload);
+
         const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Brands/savePDR', xPayload,
+        Axios.post('/diavolofiles/ws/Items/savePDR', xPayload,
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -117,51 +182,34 @@ const Brands = (props) => {
             })
             .then((response) => {
                 var updateData = [...myData];
-                const m = response.data.result[1];
-                const myIndex = updateData.findIndex(element => element.brandId === m.brandId)
-                updateData[myIndex] = response.data.result[0];
-                setMyData(updateData);
-            })
-            .catch((err) => {
-                console.log(err)
-            })
-
-        setIsEditOpen(false)
-    });
-
-    const AddBrand = ((event) => {
-
-        const payload = {
-            'keyId': '',
-            'code': values.code,
-            'description': values.description,
-        };
-        const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Brands/savePDR', xPayload,
-            {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
+                const m = response.data.result[1]; 
+                if (values.itemId === '') {
+                    updateData.push(m);
+                    setIsAddOpen(false);
+                } else {
+                    setIsEditOpen(false);
+                    const myIndex = updateData.findIndex(element => element.itemId === m.itemId)
+                    updateData[myIndex] = m;
+                    setMyData(updateData);
                 }
-            })
-            .then((response) => {
-                var updateData = [...myData];
-                const m = response.data.result[1]; // take [1]
-                updateData.push(m);
                 setMyData(updateData);
+                setMySnack({ isOpen: true, MessageType: 'Success', TextMessage: 'Operación exitosa' })
             })
             .catch((err) => {
                 console.log(err)
             })
-
         setIsAddOpen(false)
     });
 
-    const DeleteBrand = (() => {
+
+    const DeleteItem = (() => {
+
         const payload = {
-            'keyId': values.brandId
+            'keyId': values.itemId
         };
+
         const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Brands/deletePDR/', xPayload,
+        Axios.post('/diavolofiles/ws/Items/deletePDR/', xPayload,
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -170,7 +218,7 @@ const Brands = (props) => {
             .then((response) => {
                 var updateData = [...myData];
                 if (response.data.result) {
-                    const myIndex = updateData.findIndex(element => element.brandId === values.brandId)
+                    const myIndex = updateData.findIndex(element => element.itemId === values.itemId)
                     updateData = updateData.filter((item, index) => { return index !== myIndex });
                     setMyData(updateData);
                 }
@@ -199,7 +247,7 @@ const Brands = (props) => {
                     color="primary"
                     endIcon={<CheckIcon />}
                     className={classes.button}
-                    onClick={UpdateBrand}>
+                    onClick={SaveItem}>
                     Actualizar
             </Button>
             </div>
@@ -213,13 +261,13 @@ const Brands = (props) => {
                     className={classes.button}
                     onClick={() => setIsDeleteOpen(false)}>
                     Cancelar
-            </Button>
+                </Button>
                 <Button
                     variant="contained"
                     color="primary"
                     endIcon={<DeleteIcon />}
                     className={classes.button}
-                    onClick={DeleteBrand}>
+                    onClick={DeleteItem}>
                     Eliminar
                 </Button>
             </div>
@@ -239,7 +287,7 @@ const Brands = (props) => {
                     color="primary"
                     endIcon={<AddCircleOutlineIcon />}
                     className={classes.button}
-                    onClick={AddBrand}>
+                    onClick={SaveItem}>
                     Agregar
             </Button>
             </div>
@@ -248,13 +296,13 @@ const Brands = (props) => {
 
     const setTitle = ((action) => {
         if (action === 'add') return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Agregar Marca</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Agregar Item</div>
         )
         if (action === 'delete') return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Eliminar Marca</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Eliminar Item</div>
         )
         if (action === 'edit') return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Editar Marca</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Editar Item</div>
         )
     });
 
@@ -264,34 +312,45 @@ const Brands = (props) => {
                 {setTitle(action)}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <TextField
-                        className={classes.TextField}
+                        required
                         label="Codigo"
-                        style={{ margin: 10 }}
                         value={values.code}
                         onChange={handleChange('code')}
-                        inputProps={{ maxLength: 4 }}
-                        disabled={action === 'delete'}
+                        className={classes.TextField}
                     />
                     <TextField
-                        className={classes.TextField}
-                        style={{ margin: 10 }}
+                        required
                         label="Descripción"
                         value={values.description}
                         onChange={handleChange('description')}
-                        disabled={action === 'delete'}
+                        className={classes.TextField}
+                    />
+                    <TextField
+                        required
+                        label="Créditos"
+                        value={values.credits}
+                        onChange={handleChange('credits')}
+                        className={classes.TextField}
+                    />
+                    <TextField
+                        required
+                        label="Precio"
+                        value={values.price}
+                        onChange={handleChange('price')}
+                        className={classes.TextField}
                     />
                 </div>
                 {actionButton(action)}
-            </div>
+            </div >
 
         )
     });
 
+
     useEffect(() => {
-        Axios.get('/diavolofiles/ws/Brands/browsePDR?keyword=')
+        Axios.get('/diavolofiles/ws/Items/browsePDR?keyword=')
             .then(data => {
-                const tempData = data.data.result;
-                setMyData(tempData);
+                setMyData(data.data.result);
             })
             .catch(err => {
                 console.log(err)
@@ -300,16 +359,16 @@ const Brands = (props) => {
         return () => {
             console.log("Descarga del componente")
         };
-    }, [])
+    }, [values.userId])
 
     const LoadData = (() => {
-        var mySearch = values.searchString !== undefined ? values.searchString : '';
-        var myURL = '/diavolofiles/ws/Brands/browsePDR?keyword=' + mySearch;
+        var mySearch = searchString !== undefined ? searchString : '';
+        var myURL = '/diavolofiles/ws/Items/browsePDR?keyword=' + mySearch;
 
         Axios.get(myURL)
             .then(data => {
-                const tempData = data.data.result;
-                setMyData(tempData);
+                console.log('Data : ', data.data.result);
+                setMyData(data.data.result);
             })
             .catch(err => {
                 console.log(err)
@@ -320,34 +379,40 @@ const Brands = (props) => {
         LoadData();
     }
 
-    function onEdit(event, brand) {
+    function onEdit(event, item) {
         setIsEditOpen(true);
         setValues({
             ...values,
-            brandId: brand.brandId,
-            code: brand.code,
-            description: brand.description
+            itemId: item.itemId,
+            code: item.code,
+            description: item.description,
+            credits: item.credits,
+            price: item.price
         });
+        //TODO: Assign values for the edit screen
     };
 
     function onAdd() {
         setIsAddOpen(true);
         setValues({
             ...values,
-            brandId: '',
-            code: '',
-            description: ''
+            itemId: '',
+            code:'',
+            description:'',
+            credits:'',
+            price:''
         });
+        //TODO: clear values for the add screen
     };
 
-    function onDelete(event, brand) {
+
+    function onDelete(event, item) {
         setIsDeleteOpen(true)
         setValues({
             ...values,
-            brandId: brand.brandId,
-            code: brand.code,
-            description: brand.description
+            itemId: item.itemId,
         });
+        //TODO: Update values to show in the Delete Screen
     }
 
     return (
@@ -365,13 +430,14 @@ const Brands = (props) => {
                             Agregar
                         </Button>
                     </div>
+
                     <div style={{ display: 'flex', alignItems: "center", justifyContent: 'flex-end', margin: 2 }}>
                         <TextField
 
                             className={classes.TextField}
                             label="Buscar..."
-                            value={values.searchString}
-                            onChange={handleChange('searchString')}
+                            value={searchString}
+                            onChange={handleChangeSearchString('searchString')}
                         />
                         <Button
                             variant="contained"
@@ -404,28 +470,28 @@ const Brands = (props) => {
                             <TableBody>
                                 {myData.map((row) => {
                                     return (
-                                        <TableRow hover role="checkbox" tabIndex={-1} key={row.code}>
+                                        <TableRow hover role="checkbox" tabIndex={-1} key={row.itemId}>
                                             {columns.map((column) => {
                                                 const value = row[column.id];
                                                 if (column.id === 'actions') {
                                                     return (
                                                         <TableCell key={column.id} align={column.align}>
-                                                            <div style={{}}>
-
-                                                                <Button onClick={(event) => onEdit(event, row)}>
+                                                            <div>
+                                                                <IconButton onClick={(event) => onEdit(event, row)} >
                                                                     <EditIcon />
-                                                                </Button>
+                                                                </IconButton>
 
-                                                                <Button onClick={(event) => onDelete(event, row)}>
+                                                                <IconButton onClick={(event) => onDelete(event, row)}>
                                                                     <DeleteIcon />
-                                                                </Button>
+                                                                </IconButton>
                                                             </div>
                                                         </TableCell>
                                                     )
                                                 } else {
+
                                                     return (
                                                         <TableCell key={column.id} align={column.align}>
-                                                            {column.format && typeof value === 'number' ? column.format(value) : value}
+                                                            {column.format ? column.format(value) : value}
                                                         </TableCell>
                                                     )
                                                 }
@@ -450,7 +516,11 @@ const Brands = (props) => {
                 <Modal open={isDeleteOpen}>
                     {editScreen('delete')}
                 </Modal>
-
+                <SnackMessages
+                    isOpen={mySnack.isOpen}
+                    MessageType={mySnack.MessageType}
+                    TextMessage={mySnack.TextMessage}
+                    closeIt={handleSnackClose} />
             </div>
         </>
     );
@@ -458,4 +528,4 @@ const Brands = (props) => {
 const areEqual = (prevProps, nextProps) => {
     return false
 };
-export default React.memo(Brands, areEqual);
+export default React.memo(Items, areEqual);

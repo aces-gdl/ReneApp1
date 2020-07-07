@@ -22,16 +22,23 @@ class Main extends Component {
                                 <Link to="/" className={classes.menuButton}  > <HomeOutlinedIcon/></Link> 
                             </IconButton>
                             <Typography variant="h6" >
-                                <Link to="/Brands" className={classes.menuButton}  >Brands</Link>
+                                <Link to="/Items" className={classes.menuButton}  >Items</Link>
                             </Typography>
                             <Typography variant="h6"  >
-                                <Link to="/cat2" className={classes.menuButton}  >Catalogo 2</Link>
+                                <Link to="/Vehicles" className={classes.menuButton}  >Vehiculos</Link>
                             </Typography>
                         </Toolbar>
                     </AppBar>
                 </div>
                 <div>
                     {this.props.children}
+                </div>
+                <div>
+                <AppBar style={{top:'auto', bottom:0}} position="fixed">
+                        <Toolbar variant="dense">
+                         
+                        </Toolbar>
+                    </AppBar>
                 </div>
             </div>
         )

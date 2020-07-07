@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { makeStyles } from '@material-ui/core/styles';
+import { makeStyles, withStyles } from '@material-ui/core/styles';
+import Tooltip from '@material-ui/core/Tooltip';
 import Table from '@material-ui/core/Table';
 import TableBody from '@material-ui/core/TableBody';
 import TableCell from '@material-ui/core/TableCell';
@@ -7,7 +8,7 @@ import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Axios from 'axios';
-import { TextField, Button } from '@material-ui/core';
+import { TextField, Button, Input } from '@material-ui/core';
 import SearchIcon from '@material-ui/icons/Search';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import EditIcon from '@material-ui/icons/Edit';
@@ -15,24 +16,37 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import Modal from '@material-ui/core/Modal';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
+import AssignmentIcon from '@material-ui/icons/Assignment';
+import IconButton from '@material-ui/core/IconButton';
+import BrandDropdown from '../dropdowns/BrandDropdown';
 import '../Catalog.css';
-
+import { ModelDropdown } from '../dropdowns/ModelDropdown';
+import { GenerationDropdown } from '../dropdowns/GenerationDropdown';
+import { FuelTypeDropdown } from '../dropdowns/FuelTypeDropdown';
+import { EnginesDropdown } from '../dropdowns/EnginesDropdrown';
+import StagesDropdown from '../dropdowns/StagesDropdown';
+import uuid from 'react-uuid';
+import { SnackMessages } from '../utils/SnackMessages';
 const querystring = require('query-string');
 
 
 const columns = [
-    { id: 'code', label: 'Código', minWidth: 100 },
     {
-        id: 'description',
-        label: 'Descripción',
-        minWidth: 170,
+        id: 'workOrderId',
+        label: 'WO',
         align: 'center',
-        format: (value) => value.toLocaleString('en-US'),
+        minWidth: 50
+    },
+    {
+        id: 'wosCode',
+        label: 'Status',
+        align: 'center',
+        minWidth: 50
     },
     {
         id: 'actions',
         label: 'Acciones',
-        minWidth: 170,
+        minWidth: 150,
         align: 'center',
         format: (value) => value.toLocaleString('en-US'),
     },
@@ -54,7 +68,7 @@ function getModalStyle() {
 const useStyles = makeStyles((theme) => ({
     paper: {
         position: 'absolute',
-        width: 400,
+        width: 500,
 
         backgroundColor: theme.palette.background.paper,
         border: '1px solid #000',
@@ -76,68 +90,143 @@ const useStyles = makeStyles((theme) => ({
     modalTitle: {
         color: 'white',
         backgroundColor: 'rgb(12,81,161)'
-    }
+    },
+    dropDown: {
+        width: '220px'
+    },
+    TextField: {
+        width: '220px'
+    },
 }));
 
-const Brands = (props) => {
+const HtmlTooltip = withStyles((theme) => ({
+    tooltip: {
+        backgroundColor: '#f5f5f9',
+        color: 'rgba(0, 0, 0, 0.87)',
+        maxWidth: 220,
+        fontSize: theme.typography.pxToRem(12),
+        border: '1px solid #dadde9',
+    },
+}))(Tooltip);
+
+const Templates = (props) => {
     const classes = useStyles();
     const [myData, setMyData] = React.useState([]);
+    const [myFile, setMyFile] = React.useState(null);
     const [isEditOpen, setIsEditOpen] = React.useState(false);
     const [isAddOpen, setIsAddOpen] = React.useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
 
     const [modalStyle] = React.useState(getModalStyle);
-
+    const [searchString, setSearchString] = React.useState('');
 
     const [values, setValues] = React.useState({
-        searchString: '',
+        keyId: '',
+        userId: 2,
+        templateId: '',
         brandId: '',
-        code: '',
-        description: '',
+        modelId: '',
+        generationId: '',
+        fuelTypeId: '',
+        engineId: '',
+        year: '',
+        gearbox: '',
+        ecu: '',
+        hardware: '',
+        software: '',
+        fileName: ''
     });
 
+    const [mySnack, setMySnack] = React.useState({
+        TextMessage: 'Hola Default',
+        isOpen: false,
+        MessageType: 'Info'
+    })
+
+    const updateBrandIdFromChild = (dataFromChild) => {
+        setValues({ ...values, brandId: dataFromChild });
+    };
+    const handleChangeSearchString = (prop) => (event) => {
+        setSearchString(event.target.value);
+    };
     const handleChange = (prop) => (event) => {
         setValues({ ...values, [prop]: event.target.value });
     };
 
 
-    const UpdateBrand = ((event) => {
+    const handleFileChange = (e) => {
+        if (e.target.files.length >= 1) {
+            setMyFile(e.target.files[0]);
+            var newName = e.target.files[0].name;
+            newName = uuid() + newName.substr(newName.lastIndexOf('.'), newName.length);
+            setValues({ ...values, fileName: newName });
+        }
+    }
 
-        const payload = {
-            'keyId': values.brandId,
-            'code': values.code,
-            'description': values.description,
-        };
-        const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Brands/savePDR', xPayload,
+    const handleSnackClose = (() => {
+        setMySnack({ isOpen: false });
+    })
+
+    const UploadFile = (() => {
+        if (validateForm()) {
+            return
+        }
+
+        if (myFile === null) {
+            SaveTemplate();
+            setIsEditOpen(false);
+            setIsAddOpen(false);
+            return;
+        }
+
+        var file = myFile;
+        var formData = new FormData();
+        formData.append("file", file);
+        formData.append("DIRECTORY", "tmp");
+        formData.append("FINAL_FILE_NAME", values.fileName);
+
+        Axios(
             {
+                url: '/diavolofiles/FileUploaderLocal',
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
-                }
+                },
+                data: formData
             })
             .then((response) => {
-                var updateData = [...myData];
-                const m = response.data.result[1];
-                const myIndex = updateData.findIndex(element => element.brandId === m.brandId)
-                updateData[myIndex] = response.data.result[0];
-                setMyData(updateData);
+                console.log('response', response);
+                SaveTemplate();
+                setIsEditOpen(false);
+                setIsAddOpen(false);
+                setMySnack({ isOpen: true, MessageType: 'Success', TextMessage: 'Carga de imagen exitosa' })
             })
             .catch((err) => {
                 console.log(err)
             })
-
-        setIsEditOpen(false)
     });
 
-    const AddBrand = ((event) => {
+
+    const validateForm = (() => {
+        var errorMessage = '';
+
+        if (values.brandId === '' && errorMessage.length === 0) {
+            errorMessage += "Marca es requerida"
+        }
+        return errorMessage.length > 0
+    })
+
+
+    const SaveTemplate = (() => {
 
         const payload = {
-            'keyId': '',
-            'code': values.code,
-            'description': values.description,
+            keyId: values.keyId,
         };
+
+        console.log('Payload: ', payload);
+
         const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Brands/savePDR', xPayload,
+        Axios.post('/diavolofiles/ws/Templates/savePDR', xPayload,
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -148,20 +237,23 @@ const Brands = (props) => {
                 const m = response.data.result[1]; // take [1]
                 updateData.push(m);
                 setMyData(updateData);
+                setMySnack({ isOpen: true, MessageType: 'Success', TextMessage: 'Operación exitosa' })
             })
             .catch((err) => {
                 console.log(err)
             })
-
         setIsAddOpen(false)
     });
 
-    const DeleteBrand = (() => {
+
+    const DeleteTemplate = (() => {
+
         const payload = {
-            'keyId': values.brandId
+            'keyId': values.templateId
         };
+
         const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Brands/deletePDR/', xPayload,
+        Axios.post('/diavolofiles/ws/Templates/deletePDR/', xPayload,
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -170,7 +262,7 @@ const Brands = (props) => {
             .then((response) => {
                 var updateData = [...myData];
                 if (response.data.result) {
-                    const myIndex = updateData.findIndex(element => element.brandId === values.brandId)
+                    const myIndex = updateData.findIndex(element => element.templateId === values.templateId)
                     updateData = updateData.filter((item, index) => { return index !== myIndex });
                     setMyData(updateData);
                 }
@@ -199,7 +291,7 @@ const Brands = (props) => {
                     color="primary"
                     endIcon={<CheckIcon />}
                     className={classes.button}
-                    onClick={UpdateBrand}>
+                    onClick={SaveTemplate}>
                     Actualizar
             </Button>
             </div>
@@ -219,7 +311,7 @@ const Brands = (props) => {
                     color="primary"
                     endIcon={<DeleteIcon />}
                     className={classes.button}
-                    onClick={DeleteBrand}>
+                    onClick={DeleteTemplate}>
                     Eliminar
                 </Button>
             </div>
@@ -239,7 +331,7 @@ const Brands = (props) => {
                     color="primary"
                     endIcon={<AddCircleOutlineIcon />}
                     className={classes.button}
-                    onClick={AddBrand}>
+                    onClick={SaveTemplate}>
                     Agregar
             </Button>
             </div>
@@ -248,13 +340,13 @@ const Brands = (props) => {
 
     const setTitle = ((action) => {
         if (action === 'add') return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Agregar Marca</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Agregar Vehiculo</div>
         )
         if (action === 'delete') return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Eliminar Marca</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Eliminar Vehiculo</div>
         )
         if (action === 'edit') return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Editar Marca</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Editar Vehiculo</div>
         )
     });
 
@@ -263,35 +355,34 @@ const Brands = (props) => {
             <div style={modalStyle} className={classes.paper}>
                 {setTitle(action)}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <TextField
-                        className={classes.TextField}
-                        label="Codigo"
-                        style={{ margin: 10 }}
-                        value={values.code}
-                        onChange={handleChange('code')}
-                        inputProps={{ maxLength: 4 }}
-                        disabled={action === 'delete'}
-                    />
-                    <TextField
-                        className={classes.TextField}
-                        style={{ margin: 10 }}
-                        label="Descripción"
-                        value={values.description}
-                        onChange={handleChange('description')}
-                        disabled={action === 'delete'}
-                    />
+                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <TextField
+                            required
+                            label="Caja de cambios"
+                            value={values.gearbox}
+                            onChange={handleChange('gearbox')}
+                            className={classes.TextField}
+                        />
+                        <TextField
+                            required
+                            label="ECU"
+                            value={values.ecu}
+                            onChange={handleChange('ecu')}
+                            className={classes.TextField}
+                        />
+                    </div>
                 </div>
                 {actionButton(action)}
-            </div>
+            </div >
 
         )
     });
 
+
     useEffect(() => {
-        Axios.get('/diavolofiles/ws/Brands/browsePDR?keyword=')
+        Axios.get('/diavolofiles/ws/VwBTemplatesExt/browsePDR?keyword=&userId=' + values.userId)
             .then(data => {
-                const tempData = data.data.result;
-                setMyData(tempData);
+                setMyData(data.data.result);
             })
             .catch(err => {
                 console.log(err)
@@ -300,16 +391,16 @@ const Brands = (props) => {
         return () => {
             console.log("Descarga del componente")
         };
-    }, [])
+    }, [values.userId])
 
     const LoadData = (() => {
-        var mySearch = values.searchString !== undefined ? values.searchString : '';
-        var myURL = '/diavolofiles/ws/Brands/browsePDR?keyword=' + mySearch;
+        var mySearch = searchString !== undefined ? searchString : '';
+        var myURL = '/diavolofiles/ws/VwBTemplatesExt/browsePDR?keyword=' + mySearch + '&userId=' + values.userId;
 
         Axios.get(myURL)
             .then(data => {
-                const tempData = data.data.result;
-                setMyData(tempData);
+                console.log('Data : ', data.data.result);
+                setMyData(data.data.result);
             })
             .catch(err => {
                 console.log(err)
@@ -320,34 +411,32 @@ const Brands = (props) => {
         LoadData();
     }
 
-    function onEdit(event, brand) {
+    function onEdit(event, template) {
         setIsEditOpen(true);
         setValues({
             ...values,
-            brandId: brand.brandId,
-            code: brand.code,
-            description: brand.description
+            userId: template.userId,
         });
+//TODO: Assign values for the edit screen
     };
 
     function onAdd() {
         setIsAddOpen(true);
         setValues({
             ...values,
-            brandId: '',
-            code: '',
-            description: ''
-        });
+            keyId: '',
+         });
+//TODO: clear values for the add screen
     };
 
-    function onDelete(event, brand) {
+
+    function onDelete(event, template) {
         setIsDeleteOpen(true)
         setValues({
             ...values,
-            brandId: brand.brandId,
-            code: brand.code,
-            description: brand.description
+             keyId: template.keyId,
         });
+ //TODO: Update values to show in the Delete Screen
     }
 
     return (
@@ -365,13 +454,14 @@ const Brands = (props) => {
                             Agregar
                         </Button>
                     </div>
+
                     <div style={{ display: 'flex', alignItems: "center", justifyContent: 'flex-end', margin: 2 }}>
                         <TextField
 
                             className={classes.TextField}
                             label="Buscar..."
-                            value={values.searchString}
-                            onChange={handleChange('searchString')}
+                            value={searchString}
+                            onChange={handleChangeSearchString('searchString')}
                         />
                         <Button
                             variant="contained"
@@ -404,28 +494,45 @@ const Brands = (props) => {
                             <TableBody>
                                 {myData.map((row) => {
                                     return (
-                                        <TableRow hover role="checkbox" tabIndex={-1} key={row.code}>
+                                        <TableRow hover role="checkbox" tabIndex={-1} key={row.workOrderId}>
                                             {columns.map((column) => {
                                                 const value = row[column.id];
                                                 if (column.id === 'actions') {
                                                     return (
                                                         <TableCell key={column.id} align={column.align}>
-                                                            <div style={{}}>
-
-                                                                <Button onClick={(event) => onEdit(event, row)}>
+                                                            <div   >
+                                                                <HtmlTooltip
+                                                                    placement="left-start"
+                                                                    title={
+                                                                        <React.Fragment>
+                                                                            <b>Status</b> {row.wosDescription}<br />
+                                                                            <b>Caja:</b> {row.gearbox} <br />
+                                                                            <b>ECU: </b> {row.ecu} <br />
+                                                                            <b>Hardware: </b>{row.hardware}<br />
+                                                                            <b>Software: </b>{row.software}<br />
+                                                                            <b>Etapa:</b>{row.stageDescription}<br />
+                                                                        </React.Fragment>
+                                                                    }
+                                                                >
+                                                                    <IconButton >
+                                                                        <AssignmentIcon />
+                                                                    </IconButton>
+                                                                </HtmlTooltip>
+                                                                <IconButton onClick={(event) => onEdit(event, row)} >
                                                                     <EditIcon />
-                                                                </Button>
+                                                                </IconButton>
 
-                                                                <Button onClick={(event) => onDelete(event, row)}>
+                                                                <IconButton onClick={(event) => onDelete(event, row)}>
                                                                     <DeleteIcon />
-                                                                </Button>
+                                                                </IconButton>
                                                             </div>
                                                         </TableCell>
                                                     )
                                                 } else {
+
                                                     return (
                                                         <TableCell key={column.id} align={column.align}>
-                                                            {column.format && typeof value === 'number' ? column.format(value) : value}
+                                                            {column.format ? column.format(value) : value}
                                                         </TableCell>
                                                     )
                                                 }
@@ -450,7 +557,11 @@ const Brands = (props) => {
                 <Modal open={isDeleteOpen}>
                     {editScreen('delete')}
                 </Modal>
-
+                <SnackMessages
+                    isOpen={mySnack.isOpen}
+                    MessageType={mySnack.MessageType}
+                    TextMessage={mySnack.TextMessage}
+                    closeIt={handleSnackClose} />
             </div>
         </>
     );
@@ -458,4 +569,4 @@ const Brands = (props) => {
 const areEqual = (prevProps, nextProps) => {
     return false
 };
-export default React.memo(Brands, areEqual);
+export default React.memo(Templates, areEqual);

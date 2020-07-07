@@ -7,7 +7,7 @@ import TableContainer from '@material-ui/core/TableContainer';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Axios from 'axios';
-import { TextField, Button } from '@material-ui/core';
+import { TextField, Button, Select, MenuItem, Input } from '@material-ui/core';
 import SearchIcon from '@material-ui/icons/Search';
 import AddCircleOutlineIcon from '@material-ui/icons/AddCircleOutline';
 import EditIcon from '@material-ui/icons/Edit';
@@ -15,24 +15,39 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import Modal from '@material-ui/core/Modal';
 import CheckIcon from '@material-ui/icons/Check';
 import CloseIcon from '@material-ui/icons/Close';
+import LinearProgress from '@material-ui/core/LinearProgress';
 import '../Catalog.css';
 
 const querystring = require('query-string');
 
 
 const columns = [
-    { id: 'code', label: 'Código', minWidth: 100 },
     {
+        id: 'code',
+        label: 'Codigo',
+        minWidth: 100
+    }, {
         id: 'description',
         label: 'Descripción',
         minWidth: 170,
         align: 'center',
         format: (value) => value.toLocaleString('en-US'),
-    },
-    {
+    }, {
+        id: 'brandDescription',
+        label: 'Marca',
+        minWidth: 170,
+        align: 'center',
+        format: (value) => value.toLocaleString('en-US'),
+    }, {
+        id: 'vehicleTypeDescription',
+        label: 'Tipo',
+        minWidth: 170,
+        align: 'center',
+        format: (value) => value.toLocaleString('en-US'),
+    }, {
         id: 'actions',
         label: 'Acciones',
-        minWidth: 170,
+        minWidth: 100,
         align: 'center',
         format: (value) => value.toLocaleString('en-US'),
     },
@@ -76,40 +91,59 @@ const useStyles = makeStyles((theme) => ({
     modalTitle: {
         color: 'white',
         backgroundColor: 'rgb(12,81,161)'
+    },
+    progresLine: {
+        width: '100%',
+        '& > * + *': {
+            marginTop: theme.spacing(2),
+        },
     }
 }));
 
-const Brands = (props) => {
+const Models = (props) => {
     const classes = useStyles();
     const [myData, setMyData] = React.useState([]);
+    const [myBrands, setMyBrands] = React.useState([]);
     const [isEditOpen, setIsEditOpen] = React.useState(false);
     const [isAddOpen, setIsAddOpen] = React.useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
+    const [isLoading, setIsLoading] = React.useState(false);
 
     const [modalStyle] = React.useState(getModalStyle);
 
 
     const [values, setValues] = React.useState({
         searchString: '',
+        modelId: '',
         brandId: '',
+        vehicleTypeId: '',
         code: '',
         description: '',
+        brandCode: '',
+        brandDescription: '',
+        vehicleTypeCode: '',
+        vehicleTypeDescription: ''
+
     });
 
     const handleChange = (prop) => (event) => {
         setValues({ ...values, [prop]: event.target.value });
+        if (event.target.name === 'brandId'){
+            const selectedBrand = myBrands.find (brand => brand.brandId === event.target.value);
+            setValues({ ...values, brandDescription: selectedBrand.description, brandId : selectedBrand.brandId });
+        }
     };
 
 
-    const UpdateBrand = ((event) => {
+    const UpdateModel = ((event) => {
 
         const payload = {
-            'keyId': values.brandId,
+            'keyId': values.modelId,
             'code': values.code,
             'description': values.description,
         };
         const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Brands/savePDR', xPayload,
+        Axios.post('/diavolofiles/ws/Models/savePDR', xPayload,
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -118,7 +152,7 @@ const Brands = (props) => {
             .then((response) => {
                 var updateData = [...myData];
                 const m = response.data.result[1];
-                const myIndex = updateData.findIndex(element => element.brandId === m.brandId)
+                const myIndex = updateData.findIndex(element => element.modelId === m.modelId)
                 updateData[myIndex] = response.data.result[0];
                 setMyData(updateData);
             })
@@ -129,7 +163,7 @@ const Brands = (props) => {
         setIsEditOpen(false)
     });
 
-    const AddBrand = ((event) => {
+    const AddModel = ((event) => {
 
         const payload = {
             'keyId': '',
@@ -137,7 +171,7 @@ const Brands = (props) => {
             'description': values.description,
         };
         const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Brands/savePDR', xPayload,
+        Axios.post('/diavolofiles/ws/Models/savePDR', xPayload,
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -156,12 +190,12 @@ const Brands = (props) => {
         setIsAddOpen(false)
     });
 
-    const DeleteBrand = (() => {
+    const DeleteModel = (() => {
         const payload = {
-            'keyId': values.brandId
+            'keyId': values.modelId
         };
         const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Brands/deletePDR/', xPayload,
+        Axios.post('/diavolofiles/ws/Models/deletePDR/', xPayload,
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -170,7 +204,7 @@ const Brands = (props) => {
             .then((response) => {
                 var updateData = [...myData];
                 if (response.data.result) {
-                    const myIndex = updateData.findIndex(element => element.brandId === values.brandId)
+                    const myIndex = updateData.findIndex(element => element.modelId === values.modelId)
                     updateData = updateData.filter((item, index) => { return index !== myIndex });
                     setMyData(updateData);
                 }
@@ -199,7 +233,7 @@ const Brands = (props) => {
                     color="primary"
                     endIcon={<CheckIcon />}
                     className={classes.button}
-                    onClick={UpdateBrand}>
+                    onClick={UpdateModel}>
                     Actualizar
             </Button>
             </div>
@@ -219,7 +253,7 @@ const Brands = (props) => {
                     color="primary"
                     endIcon={<DeleteIcon />}
                     className={classes.button}
-                    onClick={DeleteBrand}>
+                    onClick={DeleteModel}>
                     Eliminar
                 </Button>
             </div>
@@ -239,7 +273,7 @@ const Brands = (props) => {
                     color="primary"
                     endIcon={<AddCircleOutlineIcon />}
                     className={classes.button}
-                    onClick={AddBrand}>
+                    onClick={AddModel}>
                     Agregar
             </Button>
             </div>
@@ -280,36 +314,64 @@ const Brands = (props) => {
                         onChange={handleChange('description')}
                         disabled={action === 'delete'}
                     />
+                    <Select
+                        labelId="demo-simple-select-error-label"
+                        id="demo-simple-select-error"
+                        value={values.brandId}
+                        onChange={handleChange('brandId')}
+                        input={<Input name="brandId" id="brandId" />}
+                        
+                    >
+                        <MenuItem value="" />
+                        {myBrands.map((row) => {
+                                    return ( 
+                            <MenuItem key={row.brandId} value={row.brandId}>{row.description}</MenuItem>
+                        )})}
+                    </Select>
                 </div>
                 {actionButton(action)}
             </div>
-
         )
     });
-
+    //
     useEffect(() => {
-        Axios.get('/diavolofiles/ws/Brands/browsePDR?keyword=')
-            .then(data => {
-                const tempData = data.data.result;
-                setMyData(tempData);
-            })
-            .catch(err => {
-                console.log(err)
-            })
-
+        setIsLoading(true);
+        /*       var myURL = '/diavolofiles/ws/VwBModels/browsePDR?keyword=';
+               Axios.get(myURL)
+                   .then(data => {
+                       const tempData = data.data.result;
+                       setMyData(tempData);
+                       setIsLoading(false);
+                   })
+                   .catch(err => {
+                       console.log(err)
+                   })
+          */
+         Axios.get('/diavolofiles/ws/Brands/browsePDR?keyword=')
+         .then(data => {
+             const tempData = data.data.result;
+             setMyBrands(tempData);
+         })
+         .catch(err => {
+             console.log(err)
+         })
+        setIsLoading(false);
         return () => {
             console.log("Descarga del componente")
         };
+
     }, [])
 
     const LoadData = (() => {
+        setIsLoading(true);
         var mySearch = values.searchString !== undefined ? values.searchString : '';
-        var myURL = '/diavolofiles/ws/Brands/browsePDR?keyword=' + mySearch;
+        var myURL = '/diavolofiles/ws/VwBModels/browsePDR?keyword=' + mySearch;
 
         Axios.get(myURL)
             .then(data => {
                 const tempData = data.data.result;
                 setMyData(tempData);
+                setIsLoading(false);
             })
             .catch(err => {
                 console.log(err)
@@ -320,13 +382,13 @@ const Brands = (props) => {
         LoadData();
     }
 
-    function onEdit(event, brand) {
+    function onEdit(event, model) {
         setIsEditOpen(true);
         setValues({
             ...values,
-            brandId: brand.brandId,
-            code: brand.code,
-            description: brand.description
+            modelId: model.modelId,
+            code: model.code,
+            description: model.description
         });
     };
 
@@ -334,19 +396,19 @@ const Brands = (props) => {
         setIsAddOpen(true);
         setValues({
             ...values,
-            brandId: '',
+            modelId: '',
             code: '',
             description: ''
         });
     };
 
-    function onDelete(event, brand) {
+    function onDelete(event, model) {
         setIsDeleteOpen(true)
         setValues({
             ...values,
-            brandId: brand.brandId,
-            code: brand.code,
-            description: brand.description
+            modelId: model.modelId,
+            code: model.code,
+            description: model.description
         });
     }
 
@@ -369,7 +431,7 @@ const Brands = (props) => {
                         <TextField
 
                             className={classes.TextField}
-                            label="Buscar..."
+                            label="Min 3 Caracteres..."
                             value={values.searchString}
                             onChange={handleChange('searchString')}
                         />
@@ -384,6 +446,7 @@ const Brands = (props) => {
                         </Button>
                     </div>
                 </div>
+
                 <div className="body-container">
                     <TableContainer className={classes.mainContainer}>
                         <Table stickyHeader aria-label="sticky table">
@@ -450,7 +513,14 @@ const Brands = (props) => {
                 <Modal open={isDeleteOpen}>
                     {editScreen('delete')}
                 </Modal>
-
+                <Modal open={isLoading}>
+                    <div style={modalStyle} className={classes.paper}>
+                        <p>Cargando ...</p>
+                        <div className={classes.progresLine}>
+                            <LinearProgress />
+                        </div>
+                    </div>
+                </Modal>
             </div>
         </>
     );
@@ -458,4 +528,4 @@ const Brands = (props) => {
 const areEqual = (prevProps, nextProps) => {
     return false
 };
-export default React.memo(Brands, areEqual);
+export default React.memo(Models, areEqual);
