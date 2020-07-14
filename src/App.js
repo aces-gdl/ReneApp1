@@ -7,6 +7,7 @@ import Landing from './components/Landing';
 import Models from './components/catalogs/Models';
 import Vehicles from './components/catalogs/Vehicles';
 import Items from './components/catalogs/Items';
+import Stages from './components/catalogs/Stages';
 //import Catalogo2 from './components/catalogs/Catalogo2';
 
 
@@ -26,6 +27,8 @@ function App() {
             <Route path={"/Vehicles"} component={Vehicles}>
             </Route>
             <Route path={"/Items"} component={Items} >
+            </Route>
+            <Route path={"/Stages"} component={Stages} >
             </Route>
           </Switch>
         </div>

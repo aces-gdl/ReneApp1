@@ -44,63 +44,6 @@ const columns = [
         minWidth: 50
     },
     {
-        id: 'brand',
-        label: 'Marca',
-        minWidth: 70
-    },
-    {
-        id: 'model',
-        label: 'Modelo',
-        minWidth: 50,
-        align: 'center',
-        format: (value) => value.toLocaleString('en-US'),
-    },
-    {
-        id: 'generation',
-        label: 'Generación',
-        minWidth: 120,
-        align: 'center',
-        format: (value) => value.toLocaleString('en-US'),
-    },
-    {
-        id: 'engine',
-        label: 'Motor',
-        minWidth: 170,
-        align: 'center',
-        format: (value) => value.toLocaleString('en-US'),
-    },
-    {
-        id: 'fuelType',
-        label: 'Comb.',
-        minWidth: 80,
-        align: 'center',
-        format: (value) => value.toLocaleString('en-US'),
-    },
-    {
-        id: 'year',
-        label: 'Año',
-        minWidth: 60,
-        align: 'center',
-
-    },
-    {
-        id: 'woCreationDate',
-        label: 'F. Creación',
-        minWidth: 150,
-        align: 'center',
-        format: (value) => {
-            const d = new Date(value);
-            return d.toLocaleDateString();
-        },
-    },
-    {
-        id: 'stageCode',
-        label: 'Etapa',
-        minWidth: 60,
-        align: 'center',
-
-    },
-    {
         id: 'actions',
         label: 'Acciones',
         minWidth: 150,
@@ -154,9 +97,6 @@ const useStyles = makeStyles((theme) => ({
     TextField: {
         width: '220px'
     },
-    Button: {
-
-    },
 }));
 
 const HtmlTooltip = withStyles((theme) => ({
@@ -169,7 +109,7 @@ const HtmlTooltip = withStyles((theme) => ({
     },
 }))(Tooltip);
 
-const Vehicles = (props) => {
+const Credits = (props) => {
     const classes = useStyles();
     const [myData, setMyData] = React.useState([]);
     const [myFile, setMyFile] = React.useState(null);
@@ -181,8 +121,9 @@ const Vehicles = (props) => {
     const [searchString, setSearchString] = React.useState('');
 
     const [values, setValues] = React.useState({
+        keyId: '',
         userId: 2,
-        vehicleId: '',
+        creditId: '',
         brandId: '',
         modelId: '',
         generationId: '',
@@ -193,11 +134,8 @@ const Vehicles = (props) => {
         ecu: '',
         hardware: '',
         software: '',
-        originalFile:'',
-        fileName:''
+        fileName: ''
     });
-
-    const [isYearValid, setIsYearValid] = React.useState(true);
 
     const [mySnack, setMySnack] = React.useState({
         TextMessage: 'Hola Default',
@@ -208,31 +146,12 @@ const Vehicles = (props) => {
     const updateBrandIdFromChild = (dataFromChild) => {
         setValues({ ...values, brandId: dataFromChild });
     };
-    const updateModelIdFromChild = (dataFromChild) => {
-        setValues({ ...values, modelId: dataFromChild });
-    };
-    const updateGenerationIdFromChild = (dataFromChild) => {
-        setValues({ ...values, generationId: dataFromChild });
-    };
-    const updateFuelTypeIdFromChild = (dataFromChild) => {
-        setValues({ ...values, fuelTypeId: dataFromChild });
-    };
-    const updateEngineIdFromChild = (dataFromChild) => {
-        setValues({ ...values, engineId: dataFromChild });
-    };
-    const updateStageIdFromChild = (dataFromChild) => {
-        setValues({ ...values, stageId: dataFromChild });
-    };
-
     const handleChangeSearchString = (prop) => (event) => {
         setSearchString(event.target.value);
     };
     const handleChange = (prop) => (event) => {
         setValues({ ...values, [prop]: event.target.value });
-        if (prop === 'year') {
-            ValidateYear(event.target.value,1900,2030);
-        }
-   };
+    };
 
 
     const handleFileChange = (e) => {
@@ -240,7 +159,7 @@ const Vehicles = (props) => {
             setMyFile(e.target.files[0]);
             var newName = e.target.files[0].name;
             newName = uuid() + newName.substr(newName.lastIndexOf('.'), newName.length);
-            setValues({...values, fileName: newName });
+            setValues({ ...values, fileName: newName });
         }
     }
 
@@ -249,12 +168,12 @@ const Vehicles = (props) => {
     })
 
     const UploadFile = (() => {
-        if (validaForm()) {
+        if (validateForm()) {
             return
         }
 
         if (myFile === null) {
-            SaveVehicle();
+            SaveCredit();
             setIsEditOpen(false);
             setIsAddOpen(false);
             return;
@@ -262,7 +181,6 @@ const Vehicles = (props) => {
 
         var file = myFile;
         var formData = new FormData();
-
         formData.append("file", file);
         formData.append("DIRECTORY", "tmp");
         formData.append("FINAL_FILE_NAME", values.fileName);
@@ -278,12 +196,10 @@ const Vehicles = (props) => {
             })
             .then((response) => {
                 console.log('response', response);
-                SaveVehicle();
+                SaveCredit();
                 setIsEditOpen(false);
                 setIsAddOpen(false);
                 setMySnack({ isOpen: true, MessageType: 'Success', TextMessage: 'Carga de imagen exitosa' })
-                setMyFile(null);
-                setValues({ ...values,fileName:''});
             })
             .catch((err) => {
                 console.log(err)
@@ -291,89 +207,26 @@ const Vehicles = (props) => {
     });
 
 
-    const validaForm = (() => {
+    const validateForm = (() => {
         var errorMessage = '';
 
         if (values.brandId === '' && errorMessage.length === 0) {
             errorMessage += "Marca es requerida"
         }
-        if (values.modelId === '' && errorMessage.length === 0) {
-            errorMessage += "Modelo es requerido"
-        }
-        if (values.generationId === '' && errorMessage.length === 0) {
-            errorMessage += "Generación es requerida"
-        }
-        if (values.fuelTypeId === '' && errorMessage.length === 0) {
-            errorMessage += "Tipo de Gasolina es requerida"
-        }
-        if (values.engineId === '' && errorMessage.length === 0) {
-            errorMessage += "Tipo de motor es requerido"
-        }
-        if (values.generationId === '' && errorMessage.length === 0) {
-            errorMessage += "Generación es requerida"
-        }
-        if (values.year === '' && errorMessage.length === 0) {
-            errorMessage += "Año es requerida"
-        }
-        if (values.gearbox === '' && errorMessage.length === 0) {
-            errorMessage += "Caja de cambios es requerida"
-        }
-        if (values.ecu === '' && errorMessage.length === 0) {
-            errorMessage += "ECU es requerida"
-        }
-        if (values.hardware === '' && errorMessage.length === 0) {
-            errorMessage += "Hardware es requerido"
-        }
-        if (values.fileName === ''
-            && errorMessage.length === 0
-            && myFile === null
-            && values.vehicleId === '') {
-            errorMessage += "Archivo es requerido"
-        }
-        if (values.stageId === '' && errorMessage.length === 0) {
-            errorMessage += "Etapa es requerida"
-        }
-        if (errorMessage.length > 0) {
-            setMySnack({ isOpen: true, TextMessage: errorMessage, MessageType: 'Error' });
-        }
-
         return errorMessage.length > 0
     })
 
-    const ValidateYear = ((value,min,max) => {
-        if (isNaN(value)){
-            setIsYearValid(false);
-        }else{
-            let myYear = parseInt(value);
-            if ((myYear >= min) && (myYear <= max)){
-                setIsYearValid(true)
-            }else{
-                setIsYearValid(false)
-            }
-        }
-    })
 
-
-
-    const SaveVehicle = (() => {
+    const SaveCredit = (() => {
 
         const payload = {
-            keyId: values.vehicleId,
-            userId: values.userId,
-            engineId: values.engineId,
-            year: values.year,
-            gearbox: values.gearbox,
-            ecu: values.ecu,
-            hardware: values.hardware,
-            software: values.software,
-            stageId: values.stageId,
-            originalFile: values.fileName,
+            keyId: values.keyId,
         };
 
         console.log('Payload: ', payload);
 
         const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Vehicles/savePDR', xPayload,
+        Axios.post('/diavolofiles/ws/Credits/savePDR', xPayload,
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -382,17 +235,8 @@ const Vehicles = (props) => {
             .then((response) => {
                 var updateData = [...myData];
                 const m = response.data.result[1]; // take [1]
-
-                if (values.vehicleId === '') {
-                    updateData.push(m);
-                    setIsAddOpen(false);
-                } else {
-                    setIsEditOpen(false);
-                    const myIndex = updateData.findIndex(element => element.vehicleId === m.vehicleId)
-                    updateData[myIndex] = m;
-                }
-      
-                 setMyData(updateData);
+                updateData.push(m);
+                setMyData(updateData);
                 setMySnack({ isOpen: true, MessageType: 'Success', TextMessage: 'Operación exitosa' })
             })
             .catch((err) => {
@@ -402,14 +246,14 @@ const Vehicles = (props) => {
     });
 
 
-    const DeleteVehicle = (() => {
+    const DeleteCredit = (() => {
 
         const payload = {
-            'keyId': values.vehicleId
+            'keyId': values.creditId
         };
 
         const xPayload = querystring.stringify(payload);
-        Axios.post('/diavolofiles/ws/Vehicles/deletePDR/', xPayload,
+        Axios.post('/diavolofiles/ws/Credits/deletePDR/', xPayload,
             {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -418,7 +262,7 @@ const Vehicles = (props) => {
             .then((response) => {
                 var updateData = [...myData];
                 if (response.data.result) {
-                    const myIndex = updateData.findIndex(element => element.vehicleId === values.vehicleId)
+                    const myIndex = updateData.findIndex(element => element.creditId === values.creditId)
                     updateData = updateData.filter((item, index) => { return index !== myIndex });
                     setMyData(updateData);
                 }
@@ -447,7 +291,7 @@ const Vehicles = (props) => {
                     color="primary"
                     endIcon={<CheckIcon />}
                     className={classes.button}
-                    onClick={UploadFile}>
+                    onClick={SaveCredit}>
                     Actualizar
             </Button>
             </div>
@@ -467,7 +311,7 @@ const Vehicles = (props) => {
                     color="primary"
                     endIcon={<DeleteIcon />}
                     className={classes.button}
-                    onClick={DeleteVehicle}>
+                    onClick={DeleteCredit}>
                     Eliminar
                 </Button>
             </div>
@@ -487,7 +331,7 @@ const Vehicles = (props) => {
                     color="primary"
                     endIcon={<AddCircleOutlineIcon />}
                     className={classes.button}
-                    onClick={UploadFile}>
+                    onClick={SaveCredit}>
                     Agregar
             </Button>
             </div>
@@ -496,13 +340,13 @@ const Vehicles = (props) => {
 
     const setTitle = ((action) => {
         if (action === 'add') return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Agregar Vehiculo : Valid -> {isYearValid?'Si':'no'}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Agregar Vehiculo</div>
         )
         if (action === 'delete') return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Eliminar Vehiculo</div>
         )
         if (action === 'edit') return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Editar Vehiculo</div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={classes.modalTitle}>Editar Vehiculo</div>
         )
     });
 
@@ -511,58 +355,6 @@ const Vehicles = (props) => {
             <div style={modalStyle} className={classes.paper}>
                 {setTitle(action)}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <BrandDropdown
-                            required
-                            updateBrandId={updateBrandIdFromChild}
-                            className={classes.dropDown}
-                            selectedBrand={values.brandId}
-                        />
-                        <ModelDropdown
-                            required
-                            updateModelId={updateModelIdFromChild}
-                            currentBrandId={values.brandId}
-                            className={classes.dropDown}
-                            selectedModel={values.modelId}
-                        />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <GenerationDropdown
-                            updateGenerationId={updateGenerationIdFromChild}
-                            currentModelId={values.modelId}
-                            className={classes.dropDown}
-                            selectedGeneration={values.generationId}
-                        />
-                        <FuelTypeDropdown
-                            updateFuelTypeId={updateFuelTypeIdFromChild}
-                            className={classes.dropDown}
-                            selectedFuelType={values.fuelTypeId}
-                        />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <EnginesDropdown
-                            updateEnginesId={updateEngineIdFromChild}
-                            currentGenerationId={values.generationId}
-                            currentFuelTypeId={values.fuelTypeId}
-                            className={classes.dropDown}
-                            selectedEngine={values.engineId}
-                        />
-                        <TextField
-                            required
-                            label="Año"
-                            input={<Input name="year"
-                                id="year"
-                                required
-                                type="number"
-                                min="1900"
-                                max="2025" />}
-                            onChange={handleChange('year')}
-                            value={values.year}
-                            className={classes.TextField}
-                            helperText={isYearValid ? "" : "Año entre 1900 y 2025 es requerido" }
-                            error ={!isYearValid}
-                        />
-                    </div>
                     <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
                         <TextField
                             required
@@ -579,37 +371,6 @@ const Vehicles = (props) => {
                             className={classes.TextField}
                         />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <TextField
-                            required
-                            label="Hardware"
-                            value={values.hardware}
-                            onChange={handleChange('hardware')}
-                            className={classes.TextField}
-                        />
-                        <TextField
-                            required
-                            label="Software"
-                            value={values.software}
-                            onChange={handleChange('software')}
-                            className={classes.TextField}
-                        />
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <TextField
-                            required
-                            label="Archivo"
-                            type="file"
-                            onChange={handleFileChange}
-                            className={classes.TextField}
-                        />
-                        <StagesDropdown
-                            required
-                            updateStageId={updateStageIdFromChild}
-                            className={classes.dropDown}
-                            selectedStage={values.stageId}
-                        />
-                    </div>
                 </div>
                 {actionButton(action)}
             </div >
@@ -619,7 +380,7 @@ const Vehicles = (props) => {
 
 
     useEffect(() => {
-        Axios.get('/diavolofiles/ws/VwBVehiclesExt/browsePDR?keyword=&userId=' + values.userId)
+        Axios.get('/diavolofiles/ws/VwBCreditsExt/browsePDR?keyword=&userId=' + values.userId)
             .then(data => {
                 setMyData(data.data.result);
             })
@@ -634,7 +395,7 @@ const Vehicles = (props) => {
 
     const LoadData = (() => {
         var mySearch = searchString !== undefined ? searchString : '';
-        var myURL = '/diavolofiles/ws/VwBVehiclesExt/browsePDR?keyword=' + mySearch + '&userId=' + values.userId;
+        var myURL = '/diavolofiles/ws/VwBCreditsExt/browsePDR?keyword=' + mySearch + '&userId=' + values.userId;
 
         Axios.get(myURL)
             .then(data => {
@@ -650,75 +411,32 @@ const Vehicles = (props) => {
         LoadData();
     }
 
-    function onEdit(event, vehicle) {
+    function onEdit(event, credit) {
         setIsEditOpen(true);
         setValues({
             ...values,
-            userId: vehicle.userId,
-            vehicleId: vehicle.vehicleId,
-            brandId: vehicle.brandId,
-            modelId: vehicle.modelId,
-            generationId: vehicle.generationId,
-            fuelTypeId: vehicle.fuelTypeId,
-            engineId: vehicle.engineId,
-            year: vehicle.year,
-            gearbox: vehicle.gearbox,
-            ecu: vehicle.ecu,
-            hardware: vehicle.hardware,
-            software: vehicle.software,
-            originalFile: '',
-            fileName:'',
-            stageId: vehicle.stageId
+            userId: credit.userId,
         });
-        setMyFile(null);
+//TODO: Assign values for the edit screen
     };
 
     function onAdd() {
         setIsAddOpen(true);
         setValues({
             ...values,
-            vehicleId: '',
-            userId: values.userId,
-            brandId: '',
-            modelId: '',
-            engineId: '',
-            fuelTypeId: '',
-            generationId: '',
-            year: '',
-            gearbox: '',
-            ecu: '',
-            hardware: '',
-            software: '',
-            originalFile: '',
-            fileName:'',
-            stageId: ''
-        });
-        setMyFile(null);
-        
-
+            keyId: '',
+         });
+//TODO: clear values for the add screen
     };
 
 
-    function onDelete(event, vehicle) {
+    function onDelete(event, credit) {
         setIsDeleteOpen(true)
         setValues({
             ...values,
-            vehicleId: vehicle.vehicleId,
-            userId: vehicle.userId,
-            brandId: vehicle.brandId,
-            modelId: vehicle.modelId,
-            generationId: vehicle.generationId,
-            fuelTypeId: vehicle.fuelTypeId,
-            engineId: vehicle.engineId,
-            year: vehicle.year,
-            gearbox: vehicle.gearbox,
-            ecu: vehicle.ecu,
-            hardware: vehicle.hardware,
-            software: vehicle.software,
-            originalFile: '',
-            fileName:'',
-            stageId: vehicle.stageId
+             keyId: credit.keyId,
         });
+ //TODO: Update values to show in the Delete Screen
     }
 
     return (
@@ -851,4 +569,4 @@ const Vehicles = (props) => {
 const areEqual = (prevProps, nextProps) => {
     return false
 };
-export default React.memo(Vehicles, areEqual);
+export default React.memo(Credits, areEqual);

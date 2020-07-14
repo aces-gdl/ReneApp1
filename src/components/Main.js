@@ -22,6 +22,9 @@ class Main extends Component {
                                 <Link to="/" className={classes.menuButton}  > <HomeOutlinedIcon/></Link> 
                             </IconButton>
                             <Typography variant="h6" >
+                                <Link to="/Stages" className={classes.menuButton}  >Etapas</Link>
+                            </Typography>
+                            <Typography variant="h6" >
                                 <Link to="/Items" className={classes.menuButton}  >Items</Link>
                             </Typography>
                             <Typography variant="h6"  >
